@@ -118,6 +118,13 @@ body {
   overflow-y: auto;
 }
 
+.file-list-section-title {
+  margin: 10px 12px 4px !important;
+  font-size: 0.8em;
+  color: #6b7280;
+  font-weight: bold;
+}
+
 .file-list-items {
   list-style: none !important;
   padding: 0 !important;

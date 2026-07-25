@@ -85,6 +85,13 @@ function setCurrentFileId(id) {
 
 let currentFileId = null;
 
+// ---- Googleドライブ連携(Stage 2) ----
+// 保存先が「ブラウザ内(local)」か「Googleドライブ(drive)」かを切り替えて管理する
+let currentSource = 'local';
+let currentDriveFileId = null;
+let currentDriveModifiedTime = null;
+let pendingDriveFileId = new URLSearchParams(location.search).get('fileId');
+
 function migrateOldSingleFileIfNeeded() {
   const old = localStorage.getItem(OLD_STORAGE_KEY);
   if (!old) return;
@@ -136,20 +143,136 @@ function setStatus(text) {
   statusEl.textContent = text;
 }
 
-function saveCurrentFile() {
+async function saveCurrentFile() {
   const data = mind.getData();
-  saveFileData(currentFileId, data);
-  setStatus('保存しました: ' + new Date().toLocaleTimeString('ja-JP'));
+
+  if (currentSource !== 'drive') {
+    saveFileData(currentFileId, data);
+    setStatus('保存しました: ' + new Date().toLocaleTimeString('ja-JP'));
+    return;
+  }
+
+  const name = data.nodeData.topic || '無題のマインドマップ';
+  setStatus('Googleドライブに保存中...');
+  try {
+    const meta = await Drive.saveFile(currentDriveFileId, name, data, currentDriveModifiedTime);
+    currentDriveModifiedTime = meta.modifiedTime;
+    setStatus('Googleドライブに保存しました: ' + new Date().toLocaleTimeString('ja-JP'));
+  } catch (err) {
+    if (err.isConflict) {
+      if (confirm('他の人がこのマインドマップを更新しています。上書きして保存しますか?')) {
+        const meta = await Drive.saveFile(currentDriveFileId, name, data, null);
+        currentDriveModifiedTime = meta.modifiedTime;
+        setStatus('上書き保存しました: ' + new Date().toLocaleTimeString('ja-JP'));
+      } else {
+        setStatus('保存を中止しました');
+      }
+    } else {
+      alert('保存に失敗しました: ' + err.message);
+      setStatus('保存に失敗しました');
+    }
+  }
 }
 
 document.getElementById('btn-save').addEventListener('click', saveCurrentFile);
+
+function updateSourceUI() {
+  const saveBtn = document.getElementById('btn-save');
+  const shareBtn = document.getElementById('btn-drive-share');
+  if (currentSource === 'drive') {
+    saveBtn.textContent = 'ドライブに保存';
+    saveBtn.title = '今の変更をGoogleドライブに保存します';
+    shareBtn.hidden = false;
+  } else {
+    saveBtn.textContent = '保存(ブラウザ内)';
+    saveBtn.title = '今のマインドマップをこのブラウザの中に保存します(他の端末には反映されません)';
+    shareBtn.hidden = true;
+  }
+}
 
 function startNewFile(data) {
   const id = genFileId();
   saveFileData(id, data);
   setCurrentFileId(id);
+  currentSource = 'local';
+  currentDriveFileId = null;
+  currentDriveModifiedTime = null;
   mind.init(data);
+  updateSourceUI();
 }
+
+async function openDriveFile(fileId) {
+  setStatus('Googleドライブから読み込み中...');
+  try {
+    const { data, name, modifiedTime } = await Drive.loadFile(fileId);
+    currentSource = 'drive';
+    currentDriveFileId = fileId;
+    currentDriveModifiedTime = modifiedTime;
+    mind.init(data);
+    setStatus('「' + name + '」を開きました(Googleドライブ)');
+    updateSourceUI();
+  } catch (err) {
+    alert('Googleドライブからの読み込みに失敗しました: ' + err.message);
+    setStatus('読み込みに失敗しました');
+  }
+}
+
+async function onDriveSignedIn() {
+  const signinBtn = document.getElementById('btn-drive-signin');
+  signinBtn.textContent = 'サインイン済み';
+  signinBtn.disabled = true;
+  document.getElementById('btn-drive-save').hidden = false;
+  setStatus('Googleにサインインしました');
+  if (pendingDriveFileId) {
+    const idToOpen = pendingDriveFileId;
+    pendingDriveFileId = null;
+    await openDriveFile(idToOpen);
+  }
+}
+
+if (pendingDriveFileId) {
+  setStatus('共有されたマインドマップを開くには、右上の「Googleでサインイン」を押してください');
+}
+
+Drive.init(onDriveSignedIn).catch((err) => {
+  console.error('Google Identity Servicesの初期化に失敗しました', err);
+});
+
+document.getElementById('btn-drive-signin').addEventListener('click', () => {
+  Drive.signIn();
+});
+
+document.getElementById('btn-drive-save').addEventListener('click', async () => {
+  if (!Drive.isSignedIn()) {
+    alert('先にGoogleでサインインしてください');
+    return;
+  }
+  const data = mind.getData();
+  const name = data.nodeData.topic || '無題のマインドマップ';
+  setStatus('Googleドライブに保存中...');
+  try {
+    const created = await Drive.createFile(name, data);
+    currentSource = 'drive';
+    currentDriveFileId = created.id;
+    currentDriveModifiedTime = created.modifiedTime;
+    setStatus('Googleドライブに保存しました:「' + name + '」');
+    updateSourceUI();
+  } catch (err) {
+    alert('保存に失敗しました: ' + err.message);
+    setStatus('保存に失敗しました');
+  }
+});
+
+document.getElementById('btn-drive-share').addEventListener('click', async () => {
+  if (currentSource !== 'drive' || !currentDriveFileId) return;
+  const url = location.origin + location.pathname + '?fileId=' + currentDriveFileId;
+  try {
+    await navigator.clipboard.writeText(url);
+    setStatus('共有リンクをコピーしました');
+  } catch (e) {
+    prompt('このURLをコピーしてください', url);
+  }
+});
 
 document.getElementById('btn-new').addEventListener('click', () => {
   if (!confirm('保存していない変更は失われます。新しいマインドマップを作成しますか?')) {
@@ -298,7 +421,8 @@ function renderFileList() {
 
   list.forEach((f) => {
     const li = document.createElement('li');
-    li.className = 'file-list-item' + (f.id === currentFileId ? ' current' : '');
+    const isCurrent = currentSource === 'local' && f.id === currentFileId;
+    li.className = 'file-list-item' + (isCurrent ? ' current' : '');
 
     const info = document.createElement('div');
     info.className = 'file-list-item-info';
@@ -309,7 +433,7 @@ function renderFileList() {
     dateEl.className = 'file-list-item-date';
     dateEl.textContent = '最終更新: ' + new Date(f.updatedAt).toLocaleString('ja-JP');
     info.appendChild(nameEl);
-    if (f.id === currentFileId) {
+    if (isCurrent) {
       const badge = document.createElement('span');
       badge.className = 'file-list-item-badge';
       badge.textContent = '開いているファイル';
@@ -319,7 +443,7 @@ function renderFileList() {
 
     const openBtn = document.createElement('button');
     openBtn.textContent = '開く';
-    openBtn.disabled = f.id === currentFileId;
+    openBtn.disabled = isCurrent;
     openBtn.addEventListener('click', () => {
       if (!confirm('保存していない変更は失われます。「' + f.name + '」を開きますか?')) {
         return;
@@ -330,8 +454,12 @@ function renderFileList() {
         return;
       }
       setCurrentFileId(f.id);
+      currentSource = 'local';
+      currentDriveFileId = null;
+      currentDriveModifiedTime = null;
       mind.init(data);
       setStatus('「' + f.name + '」を開きました');
+      updateSourceUI();
       renderFileList();
     });
 
@@ -341,7 +469,7 @@ function renderFileList() {
       if (!confirm('「' + f.name + '」を削除します。元に戻せません。よろしいですか?')) {
         return;
       }
-      const wasCurrent = f.id === currentFileId;
+      const wasCurrent = isCurrent;
       deleteFileData(f.id);
       if (wasCurrent) {
         startNewFile(MindElixirCtor.new('新しいマインドマップ'));
@@ -357,8 +485,101 @@ function renderFileList() {
   });
 }
 
+// ---- Googleドライブのファイル一覧 ----
+
+const driveFileListTitle = document.getElementById('drive-file-list-title');
+const driveFileListItems = document.getElementById('drive-file-list-items');
+
+async function renderDriveFileList() {
+  if (!Drive.isSignedIn()) {
+    driveFileListTitle.hidden = true;
+    driveFileListItems.innerHTML = '';
+    return;
+  }
+  driveFileListTitle.hidden = false;
+  driveFileListItems.innerHTML = '<li>読み込み中...</li>';
+
+  let files;
+  try {
+    files = await Drive.listFiles();
+  } catch (err) {
+    driveFileListItems.innerHTML = '';
+    const li = document.createElement('li');
+    li.textContent = '読み込みに失敗しました: ' + err.message;
+    driveFileListItems.appendChild(li);
+    return;
+  }
+
+  driveFileListItems.innerHTML = '';
+  if (files.length === 0) {
+    const li = document.createElement('li');
+    li.textContent = 'Googleドライブに保存されたファイルはまだありません';
+    driveFileListItems.appendChild(li);
+    return;
+  }
+
+  files.forEach((f) => {
+    const li = document.createElement('li');
+    const isCurrent = currentSource === 'drive' && f.id === currentDriveFileId;
+    li.className = 'file-list-item' + (isCurrent ? ' current' : '');
+
+    const info = document.createElement('div');
+    info.className = 'file-list-item-info';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'file-list-item-name';
+    nameEl.textContent = f.name;
+    const dateEl = document.createElement('div');
+    dateEl.className = 'file-list-item-date';
+    dateEl.textContent = '最終更新: ' + new Date(f.modifiedTime).toLocaleString('ja-JP');
+    info.appendChild(nameEl);
+    if (isCurrent) {
+      const badge = document.createElement('span');
+      badge.className = 'file-list-item-badge';
+      badge.textContent = '開いているファイル';
+      info.appendChild(badge);
+    }
+    info.appendChild(dateEl);
+
+    const openBtn = document.createElement('button');
+    openBtn.textContent = '開く';
+    openBtn.disabled = isCurrent;
+    openBtn.addEventListener('click', async () => {
+      if (!confirm('保存していない変更は失われます。「' + f.name + '」を開きますか?')) {
+        return;
+      }
+      await openDriveFile(f.id);
+      renderFileList();
+      renderDriveFileList();
+    });
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = '削除';
+    deleteBtn.addEventListener('click', async () => {
+      if (!confirm('「' + f.name + '」をGoogleドライブから削除します。元に戻せません。よろしいですか?')) {
+        return;
+      }
+      try {
+        await Drive.deleteFile(f.id);
+        if (isCurrent) {
+          startNewFile(MindElixirCtor.new('新しいマインドマップ'));
+        }
+        setStatus('「' + f.name + '」をドライブから削除しました');
+        renderDriveFileList();
+      } catch (err) {
+        alert('削除に失敗しました: ' + err.message);
+      }
+    });
+
+    li.appendChild(info);
+    li.appendChild(openBtn);
+    li.appendChild(deleteBtn);
+    driveFileListItems.appendChild(li);
+  });
+}
+
 document.getElementById('btn-file-list').addEventListener('click', () => {
   renderFileList();
+  renderDriveFileList();
   fileListPanel.hidden = !fileListPanel.hidden;
 });
 
@@ -385,4 +606,7 @@ if (!localStorage.getItem(HELP_SEEN_KEY)) {
   localStorage.setItem(HELP_SEEN_KEY, '1');
 }
 
-setStatus('準備完了(ブラウザ内保存のみ / Stage 1)');
+updateSourceUI();
+if (!pendingDriveFileId) {
+  setStatus('準備完了');
+}

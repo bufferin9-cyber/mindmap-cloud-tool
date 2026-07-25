@@ -28,6 +28,9 @@
     <input id="file-input-image" type="file" accept="image/*" style="display:none">
     <button id="btn-save" title="今のマインドマップをこのブラウザの中に保存します(他の端末には反映されません)">保存(ブラウザ内)</button>
     <button id="btn-file-list" title="これまでにブラウザ内に保存したマインドマップの一覧を開きます">ファイル一覧</button>
+    <button id="btn-drive-signin" title="Googleにサインインすると、どの端末からでも同じマインドマップを開けるようになります">Googleでサインイン</button>
+    <button id="btn-drive-save" title="今のマインドマップをGoogleドライブに保存し、どの端末からもアクセスできるようにします" hidden>ドライブに保存</button>
+    <button id="btn-drive-share" title="このマインドマップを他の人と共有するためのリンクをコピーします" hidden>共有リンクをコピー</button>
     <button id="btn-help" title="よく使う操作の一覧を表示します">使い方</button>
     <span id="status" class="status"></span>
   </div>
@@ -36,10 +39,13 @@
 
 <div id="file-list-panel" class="help-panel" hidden>
   <div class="help-panel-header">
-    <span>ファイル一覧(このブラウザ内)</span>
+    <span>ファイル一覧</span>
     <button id="btn-file-list-close" class="help-close">×</button>
   </div>
+  <p class="file-list-section-title">このブラウザ内</p>
   <ul id="file-list-items" class="file-list-items"></ul>
+  <p class="file-list-section-title" id="drive-file-list-title" hidden>Googleドライブ</p>
+  <ul id="drive-file-list-items" class="file-list-items"></ul>
 </div>
 
 <div id="help-panel" class="help-panel" hidden>
@@ -179,6 +185,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/mind-elixir@5.14.0/dist/MindElixir.iife.js"></script>
 <script src="freemind.js"></script>
+<script src="drive.js"></script>
 <script src="app.js"></script>
 
 <!-- Stage5で追加。不要になれば以下2行+CDN2行+ファイル2本を削除するだけでStage5を丸ごと取り除ける -->
