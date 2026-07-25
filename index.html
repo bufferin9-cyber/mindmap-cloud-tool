@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>マインドマップ(クラウド版・試作)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mind-elixir@5.14.0/dist/MindElixir.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="app-tabs">
+  <button class="app-tab active" data-tab="mindmap">マインドマップ</button>
+  <button class="app-tab" data-tab="flowchart">業務フロー</button>
+  <button class="app-tab" data-tab="relation">関係図</button>
+</nav>
+
+<section id="panel-mindmap" class="tab-panel">
+<header class="toolbar">
+  <span class="title">マインドマップ(試作 / Stage 1: ローカル保存のみ)</span>
+  <div class="actions">
+    <button id="btn-new" title="今の内容を消して、真っ白なマインドマップを新しく作ります">新規</button>
+    <button id="btn-import-mm" title="FreeMindなどで作った.mmファイルを選んで読み込みます(画面へのドラッグ&amp;ドロップも可)">.mm読み込み</button>
+    <input id="file-input-mm" type="file" accept=".mm" style="display:none">
+    <button id="btn-export-mm" title="今のマインドマップを.mmファイルとしてダウンロードします(FreeMindでも開けます)">.mm書き出し</button>
+    <button id="btn-export-outline" title="生成AIに読ませやすい、インデント付きの箇条書きテキストとして書き出します">テキスト書き出し(AI用)</button>
+    <button id="btn-insert-image" title="選択中のノードに画像を挿入します(クリップボードにコピーした画像をCtrl+Vで貼り付けることもできます)">画像を挿入</button>
+    <input id="file-input-image" type="file" accept="image/*" style="display:none">
+    <button id="btn-save" title="今のマインドマップをこのブラウザの中に保存します(他の端末には反映されません)">保存(ブラウザ内)</button>
+    <button id="btn-file-list" title="これまでにブラウザ内に保存したマインドマップの一覧を開きます">ファイル一覧</button>
+    <button id="btn-help" title="よく使う操作の一覧を表示します">使い方</button>
+    <span id="status" class="status"></span>
+  </div>
+</header>
+<div id="map" class="map"></div>
+
+<div id="file-list-panel" class="help-panel" hidden>
+  <div class="help-panel-header">
+    <span>ファイル一覧(このブラウザ内)</span>
+    <button id="btn-file-list-close" class="help-close">×</button>
+  </div>
+  <ul id="file-list-items" class="file-list-items"></ul>
+</div>
+
+<div id="help-panel" class="help-panel" hidden>
+  <div class="help-panel-header">
+    <span>よく使う操作</span>
+    <button id="btn-help-close" class="help-close">×</button>
+  </div>
+  <ul>
+    <li><strong>ノードをダブルクリック</strong> — 文字を編集する</li>
+    <li><strong>Tab</strong> — 選択中のノードに子ノードを追加する</li>
+    <li><strong>Enter</strong> — 選択中のノードと同じ階層に兄弟ノードを追加する</li>
+    <li><strong>Delete</strong> — 選択中のノードを削除する</li>
+    <li><strong>ノードをドラッグ</strong> — 別の場所に移動する</li>
+    <li><strong>右クリック → コネクト / 双方向リンク</strong> — 離れたノード同士を線で結ぶ(結んだ後に相手のノードをクリック)</li>
+    <li><strong>右クリック</strong> — その他のメニュー(色・アイコンなど)を開く</li>
+    <li><strong>ノードを選んでCtrl+V</strong> — コピーしたスクリーンショットなどの画像をノードに貼り付ける</li>
+    <li><strong>画像を挿入ボタン</strong> — ファイルを選んでノードに画像を挿入する</li>
+  </ul>
+</div>
+</section>
+
+<!-- ==== Stage5: 業務フロータブ ここから(不要になったらこの1ブロックとscript/link 1行を削除するだけで良い) ==== -->
+<section id="panel-flowchart" class="tab-panel" hidden>
+<header class="toolbar">
+  <span class="title">業務フロー(試作 / Mermaid記法)</span>
+  <div class="actions">
+    <button id="flow-btn-new" title="内容を消して新しいフローを作ります">新規</button>
+    <button id="flow-btn-template" title="サンプルの書き方を挿入します">テンプレート挿入</button>
+    <button id="flow-btn-save" title="このブラウザ内に保存します">保存(ブラウザ内)</button>
+    <button id="flow-btn-file-list" title="保存済みのフロー一覧を開きます">ファイル一覧</button>
+    <button id="flow-btn-export-svg" title="図をSVGファイルとして書き出します">SVG書き出し</button>
+    <button id="flow-btn-help" title="書き方の説明を表示します">使い方</button>
+    <span id="flow-status" class="status"></span>
+  </div>
+</header>
+<div class="split-view">
+  <textarea id="flow-editor" class="code-editor" spellcheck="false" placeholder="ここにMermaidのflowchart記法で業務フローを書きます。「テンプレート挿入」ボタンで書き方の例を入れられます。"></textarea>
+  <div id="flow-render" class="render-pane"></div>
+</div>
+
+<div id="flow-file-list-panel" class="help-panel" hidden>
+  <div class="help-panel-header">
+    <span>ファイル一覧(このブラウザ内)</span>
+    <button id="flow-btn-file-list-close" class="help-close">×</button>
+  </div>
+  <ul id="flow-file-list-items" class="file-list-items"></ul>
+</div>
+
+<div id="flow-help-panel" class="help-panel" hidden>
+  <div class="help-panel-header">
+    <span>書き方(Mermaid flowchart記法)</span>
+    <button id="flow-btn-help-close" class="help-close">×</button>
+  </div>
+  <ul>
+    <li><strong>flowchart TD</strong> — 上から下に流れる図を始める宣言(1行目)</li>
+    <li><strong>A[開始]</strong> — 四角いボックスのノード(IDは何でもよい)</li>
+    <li><strong>B{承認?}</strong> — ひし形(分岐・条件)のノード</li>
+    <li><strong>A --&gt; B</strong> — AからBへ矢印を引く</li>
+    <li><strong>B -- はい --&gt; C</strong> — 矢印に「はい」というラベルを付ける(分岐の条件など)</li>
+    <li>入力すると自動で右側に図が描画されます(記法が間違っている間はエラー表示になります)</li>
+  </ul>
+</div>
+</section>
+<!-- ==== Stage5: 業務フロータブ ここまで ==== -->
+
+<!-- ==== Stage5: 関係図タブ ここから(不要になったらこの1ブロックとscript/link 1行を削除するだけで良い) ==== -->
+<section id="panel-relation" class="tab-panel" hidden>
+<header class="toolbar">
+  <span class="title">関係図(試作 / 人物・組織のつながり)</span>
+  <div class="actions">
+    <button id="rel-btn-new" title="内容を消して新しい関係図を作ります">新規</button>
+    <button id="rel-btn-template" title="サンプルの書き方を挿入します">テンプレート挿入</button>
+    <button id="rel-btn-save" title="このブラウザ内に保存します">保存(ブラウザ内)</button>
+    <button id="rel-btn-file-list" title="保存済みの関係図一覧を開きます">ファイル一覧</button>
+    <button id="rel-btn-export-png" title="図をPNG画像として書き出します">PNG書き出し</button>
+    <button id="rel-btn-help" title="書き方の説明を表示します">使い方</button>
+    <span id="rel-status" class="status"></span>
+  </div>
+</header>
+<div class="split-view">
+  <textarea id="rel-editor" class="code-editor" spellcheck="false" placeholder="右側の図の左下にある「ノード追加」「リンク追加」ボタンから作れます。まとめて入力したい場合はここに「名前A | 名前B | 関係」の形で書くこともできます。"></textarea>
+  <div id="rel-render" class="render-pane"></div>
+</div>
+
+<div id="rel-file-list-panel" class="help-panel" hidden>
+  <div class="help-panel-header">
+    <span>ファイル一覧(このブラウザ内)</span>
+    <button id="rel-btn-file-list-close" class="help-close">×</button>
+  </div>
+  <ul id="rel-file-list-items" class="file-list-items"></ul>
+</div>
+
+<div id="rel-help-panel" class="help-panel" hidden>
+  <div class="help-panel-header">
+    <span>書き方</span>
+    <button id="rel-btn-help-close" class="help-close">×</button>
+  </div>
+  <p><strong>マウス操作(おすすめ)</strong>: 図の左下に出るボタンから操作できます</p>
+  <ul>
+    <li><strong>ノード追加</strong>ボタン → 置きたい場所をクリック → 名前・所属を入力</li>
+    <li><strong>リンク追加</strong>ボタン → 起点のノードをクリックしたまま繋ぎたいノードまでドラッグ → 関係を入力</li>
+    <li>ノードやリンクを選んで<strong>ノード編集/リンク編集</strong>ボタンで内容を修正、<strong>選択を削除</strong>ボタンで削除</li>
+    <li>ノードは自由にドラッグして配置し直せる</li>
+    <li>追加・編集の際に色選択画面が開く。並んでいる30色から1つクリックするだけで色を指定できる。「自動配色に戻す」で今まで通り所属・関係の種類から自動で決まる色を使う。「色番号(RGB)を自分で指定する」を開くと、細かい色番号での指定もできる</li>
+  </ul>
+  <p><strong>テキスト入力(まとめて入力したいとき用)</strong></p>
+  <ul>
+    <li><strong>名前A | 名前B | 関係</strong> — 1行で1つの関係を表す(「|」で区切る)</li>
+    <li><strong>名前(所属)</strong> — 名前の後に(　)を付けると所属になり、同じ所属は同じ色で表示される</li>
+    <li>関係の文字に<strong>「協力」</strong>を含めると緑色、<strong>「対立」</strong>を含めると赤色、それ以外(共同プロジェクト名など)は青色の線になる</li>
+    <li>色を自分で指定したい場合は、名前や関係の末尾に<strong>#RRGGBB</strong>形式の色コードを付ける(例: 田中太郎(東京大学)#ff8800 )。マウス操作でカラーピッカーから選んだ色も、この形式で自動的にテキストへ反映される</li>
+    <li>単独でノードだけ書きたい場合は「名前(所属)」の1行だけでもよい(関係がまだない人を先に登録できる)</li>
+    <li>マウス操作で作った図はこのテキスト欄にも自動で反映される(ただしコメント行は消える)</li>
+  </ul>
+</div>
+
+<div id="rel-color-modal-overlay" class="modal-overlay" hidden>
+  <div class="modal-box">
+    <p id="rel-color-modal-title">色を選んでください</p>
+    <div id="rel-color-modal-swatches" class="modal-swatches"></div>
+    <details class="modal-advanced">
+      <summary>色番号(RGB)を自分で指定する</summary>
+      <div class="modal-color-row">
+        <input id="rel-color-modal-input" type="color" value="#2a78d6">
+        <span id="rel-color-modal-hex">#2a78d6</span>
+        <button id="rel-color-modal-ok">この色にする</button>
+      </div>
+    </details>
+    <div class="modal-actions">
+      <button id="rel-color-modal-auto">自動配色に戻す</button>
+      <button id="rel-color-modal-cancel">キャンセル</button>
+    </div>
+  </div>
+</div>
+</section>
+<!-- ==== Stage5: 関係図タブ ここまで ==== -->
+
+<script src="https://cdn.jsdelivr.net/npm/mind-elixir@5.14.0/dist/MindElixir.iife.js"></script>
+<script src="freemind.js"></script>
+<script src="app.js"></script>
+
+<!-- Stage5で追加。不要になれば以下2行+CDN2行+ファイル2本を削除するだけでStage5を丸ごと取り除ける -->
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+<script src="flowchart.js"></script>
+<script src="relation.js"></script>
+<script src="tabs.js"></script>
+</body>
+</html>

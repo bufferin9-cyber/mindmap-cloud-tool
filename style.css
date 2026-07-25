@@ -1,0 +1,377 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: -apple-system, "Segoe UI", "Hiragino Sans", "Yu Gothic", sans-serif;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #2f3640;
+  color: #fff;
+  flex-wrap: wrap;
+}
+
+.toolbar .title {
+  font-weight: bold;
+  margin-right: auto;
+}
+
+.toolbar .actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.toolbar button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  background: #4b5563;
+  color: #fff;
+  cursor: pointer;
+}
+
+.toolbar button:hover {
+  background: #6b7280;
+}
+
+.status {
+  font-size: 0.85em;
+  color: #d1d5db;
+  min-width: 8em;
+}
+
+.map {
+  position: absolute;
+  top: 48px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.map.drag-over {
+  outline: 3px dashed #2f80ed;
+  outline-offset: -3px;
+}
+
+.help-panel {
+  position: absolute;
+  top: 58px;
+  right: 12px;
+  width: 300px;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+  font-size: 0.9em;
+}
+
+.help-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #2f3640;
+  color: #fff;
+  border-radius: 8px 8px 0 0;
+  font-weight: bold;
+}
+
+.help-close {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.1em;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.help-panel ul {
+  margin: 0;
+  padding: 10px 20px;
+  list-style: disc;
+}
+
+.help-panel li {
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.help-panel li:last-child {
+  margin-bottom: 0;
+}
+
+#file-list-panel {
+  width: 380px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.file-list-items {
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.file-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.file-list-item:last-child {
+  border-bottom: none;
+}
+
+.file-list-item.current {
+  background: #eef2ff;
+}
+
+.file-list-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-list-item-name {
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-list-item-date {
+  font-size: 0.8em;
+  color: #6b7280;
+}
+
+.file-list-item-badge {
+  display: inline-block;
+  font-size: 0.75em;
+  background: #4338ca;
+  color: #fff;
+  border-radius: 4px;
+  padding: 1px 6px;
+  margin: 2px 0;
+}
+
+.file-list-item button {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 4px;
+  background: #4b5563;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.85em;
+  white-space: nowrap;
+}
+
+.file-list-item button:hover {
+  background: #6b7280;
+}
+
+.file-list-item button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ==== Stage5: タブ切り替え・業務フロー・関係図(不要になればこのブロックごと削除して良い) ==== */
+
+.app-tabs {
+  flex: 0 0 auto;
+  display: flex;
+  background: #1f242b;
+}
+
+.app-tab {
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  color: #9aa1ab;
+  cursor: pointer;
+  font-size: 0.95em;
+  border-bottom: 3px solid transparent;
+}
+
+.app-tab:hover {
+  color: #fff;
+}
+
+.app-tab.active {
+  color: #fff;
+  border-bottom-color: #2f80ed;
+  background: #2f3640;
+}
+
+.tab-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.tab-panel[hidden] {
+  display: none;
+}
+
+.split-view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.code-editor {
+  width: 38%;
+  min-width: 260px;
+  resize: none;
+  font-family: "Consolas", "Yu Gothic", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 10px;
+  box-sizing: border-box;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+}
+
+.render-pane {
+  flex: 1;
+  min-width: 0;
+  background: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  overflow: auto;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.render-pane svg {
+  max-width: 100%;
+}
+
+.render-error {
+  color: #b91c1c;
+  font-size: 0.9em;
+  white-space: pre-wrap;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* [hidden]属性はクラスセレクタと詳細度が同じため、上のdisplay:flexが
+   カスケードの後勝ちで上書きしてしまい、hidden指定時も画面を覆ってクリックを
+   妨害する不具合があった。明示的に上書きして必ず非表示にする */
+.modal-overlay[hidden] {
+  display: none;
+}
+
+.modal-box {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  min-width: 280px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.modal-box p {
+  margin: 0 0 12px 0;
+  font-weight: bold;
+}
+
+.modal-swatches {
+  display: grid;
+  grid-template-columns: repeat(6, 32px);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.modal-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.modal-swatch:hover {
+  border-color: #333;
+}
+
+.modal-advanced {
+  margin-bottom: 14px;
+}
+
+.modal-advanced summary {
+  cursor: pointer;
+  color: #4b5563;
+  font-size: 0.9em;
+  margin-bottom: 8px;
+}
+
+.modal-color-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.modal-color-row input[type="color"] {
+  width: 60px;
+  height: 40px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.modal-actions button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  background: #4b5563;
+  color: #fff;
+  cursor: pointer;
+}
+
+.modal-actions button:hover {
+  background: #6b7280;
+}
+
+.modal-actions #rel-color-modal-ok {
+  background: #2a78d6;
+}
+
+.modal-actions #rel-color-modal-ok:hover {
+  background: #1e5fa8;
+}
