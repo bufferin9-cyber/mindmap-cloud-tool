@@ -79,8 +79,11 @@ const Drive = (() => {
 
   async function ensureAppFolder() {
     if (appFolderId) return appFolderId;
+    // 完全一致ではなく「名前に含まれる」で検索する。
+    // ユーザーがドライブ内の整理のため「005_マインドマップクラウド化ツール」のように
+    // 番号などを前後に付けてリネームしても、同じフォルダを見つけられるようにするため。
     const q = encodeURIComponent(
-      "name='" + DRIVE_APP_FOLDER_NAME + "' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+      "name contains '" + DRIVE_APP_FOLDER_NAME + "' and mimeType='application/vnd.google-apps.folder' and trashed=false"
     );
     const res = await apiFetch('https://www.googleapis.com/drive/v3/files?q=' + q + '&fields=files(id,name)');
     const data = await res.json();
