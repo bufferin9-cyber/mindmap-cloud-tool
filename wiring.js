@@ -5,20 +5,26 @@
 // 今のところ「つなぎ方(接続図)」だけを扱う試作段階。電流や電線の太さの計算はまだ行わない。
 
 const WIRE_TEMPLATE =
-  '# 書き方: 1行に「部品A(種類) | 部品B(種類) | 極性」を書きます(区切りは | )\n' +
+  '# 書き方: 1行に「部品A(種類) | 部品B(種類) | 種類」を書きます(区切りは | )\n' +
   '# 種類の例: パネル/バッテリー/コントローラー/ヒューズ/スイッチ/負荷\n' +
-  '# 極性は + (プラス配線、赤) か - (マイナス配線、黒) を書きます\n' +
-  'パネル1(パネル) | コントローラー1(コントローラー) | +\n' +
-  'パネル1(パネル) | コントローラー1(コントローラー) | -\n' +
-  'コントローラー1(コントローラー) | バッテリー1(バッテリー) | +\n' +
-  'コントローラー1(コントローラー) | バッテリー1(バッテリー) | -\n' +
-  'バッテリー1(バッテリー) | 負荷1(負荷) | +\n' +
-  'バッテリー1(バッテリー) | 負荷1(負荷) | -\n';
+  '# 配線の種類は + (プラス配線、赤) / - (マイナス配線、黒) / 信号 (信号線、青) を書きます\n' +
+  '# 「+-」と書くと、+とーの配線を1行で2本まとめて作れます\n' +
+  'パネル1(パネル) | コントローラー1(コントローラー) | +-\n' +
+  'コントローラー1(コントローラー) | バッテリー1(バッテリー) | +-\n' +
+  'バッテリー1(バッテリー) | 負荷1(負荷) | +-\n' +
+  'コントローラー1(コントローラー) | 負荷1(負荷) | 信号\n';
 
 const WIRE_NODE_COLOR = '#37474f';
 const WIRE_PLUS_COLOR = '#e34948';
 const WIRE_MINUS_COLOR = '#212121';
+const WIRE_SIGNAL_COLOR = '#2a78d6';
 const WIRE_DEFAULT_COLOR = '#898781';
+
+// 「+-」「-+」「±」のように書かれた場合、+とーの2本セットとして展開する
+function isPlusMinusPairLabel(label) {
+  const trimmed = (label || '').trim();
+  return trimmed === '+-' || trimmed === '-+' || trimmed === '±';
+}
 
 const WIRE_FILES_INDEX_KEY = 'wiring-app:files';
 const WIRE_CURRENT_FILE_KEY = 'wiring-app:currentFileId';
@@ -106,6 +112,7 @@ function wireParseNodeToken(raw) {
 
 function colorForPolarity(label) {
   const trimmed = (label || '').trim();
+  if (trimmed.includes('信号')) return WIRE_SIGNAL_COLOR;
   if (trimmed.includes('+')) return WIRE_PLUS_COLOR;
   if (trimmed.includes('-') || trimmed.includes('−')) return WIRE_MINUS_COLOR;
   return WIRE_DEFAULT_COLOR;
@@ -141,10 +148,15 @@ function parseWiringText(text) {
       const b = ensureNode(parts[1]);
       const label = parts.slice(2).join('|').trim();
       if (a && b) {
-        edgeList.push({ from: a, to: b, label });
+        if (isPlusMinusPairLabel(label)) {
+          edgeList.push({ from: a, to: b, label: '+' });
+          edgeList.push({ from: a, to: b, label: '-' });
+        } else {
+          edgeList.push({ from: a, to: b, label });
+        }
       }
     } else {
-      warnings.push((i + 1) + '行目: 「部品A | 部品B | 極性」の形になっていません(スキップしました)');
+      warnings.push((i + 1) + '行目: 「部品A | 部品B | 種類」の形になっていません(スキップしました)');
     }
   });
 
@@ -257,7 +269,7 @@ function wireEnsureNetworkCreated() {
         stabilization: { iterations: 200, fit: true },
         barnesHut: { springLength: 220, avoidOverlap: 0.6 },
       },
-      interaction: { hover: true },
+      interaction: { hover: true, multiselect: true },
       edges: { arrows: { to: false } },
       manipulation: {
         enabled: true,
@@ -279,12 +291,21 @@ function wireEnsureNetworkCreated() {
             callback(null);
             return;
           }
-          const label = prompt('この配線の極性を入力してください(+ または -)', '+');
+          const label = prompt('この配線の種類を入力してください(+ / - / 信号 / 自由な名前。「+-」で+とーを2本まとめて作成)', '+-');
           if (label === null) {
             callback(null);
             return;
           }
-          Object.assign(data, wireEdgeVisualFromLabel(label.trim()));
+          const trimmedLabel = label.trim();
+          if (isPlusMinusPairLabel(trimmedLabel)) {
+            Object.assign(data, wireEdgeVisualFromLabel('+'));
+            callback(data);
+            wireEdgesDataSet.add(
+              Object.assign({ from: data.from, to: data.to }, wireEdgeVisualFromLabel('-'))
+            );
+            return;
+          }
+          Object.assign(data, wireEdgeVisualFromLabel(trimmedLabel));
           callback(data);
         },
         editNode: function (data, callback) {
@@ -453,6 +474,23 @@ document.getElementById('wire-btn-export-png').addEventListener('click', () => {
   a.download = wireFirstLineAsName(wireEditor.value) + '.png';
   a.click();
   setWireStatus('PNGを書き出しました');
+});
+
+document.getElementById('wire-btn-swap').addEventListener('click', () => {
+  const selected = wireNetwork.getSelectedNodes();
+  if (selected.length !== 2) {
+    alert('位置を入れ替えたい部品を2つ選んでください(1つ目をクリックしたあと、Ctrlキーを押しながら2つ目をクリック)');
+    return;
+  }
+  const positions = wireNetwork.getPositions(selected);
+  const [a, b] = selected;
+  // 物理演算(自動配置)が動いたままだと、入れ替えた直後に位置がまたずれてしまうため、
+  // 入れ替えるタイミングで確実に止める
+  wireNetwork.setOptions({ physics: false });
+  wireNetwork.moveNode(a, positions[b].x, positions[b].y);
+  wireNetwork.moveNode(b, positions[a].x, positions[a].y);
+  wireNetwork.unselectAll();
+  setWireStatus('位置を入れ替えました');
 });
 
 // ---- ファイル一覧パネル ----
