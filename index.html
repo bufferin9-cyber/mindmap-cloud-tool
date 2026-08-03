@@ -13,7 +13,6 @@
   <button class="app-tab active" data-tab="mindmap">マインドマップ</button>
   <button class="app-tab" data-tab="flowchart">業務フロー</button>
   <button class="app-tab" data-tab="relation">関係図</button>
-  <button class="app-tab" data-tab="wiring">配線図</button>
 </nav>
 
 <section id="panel-mindmap" class="tab-panel">
@@ -184,61 +183,6 @@
 </section>
 <!-- ==== Stage5: 関係図タブ ここまで ==== -->
 
-<!-- ==== Stage6: 配線図タブ ここから(不要になったらこの1ブロックとscript 1行を削除するだけで良い) ==== -->
-<section id="panel-wiring" class="tab-panel" hidden>
-<header class="toolbar">
-  <span class="title">配線図(試作 / 電気配線の接続図)</span>
-  <div class="actions">
-    <button id="wire-btn-new" title="内容を消して新しい配線図を作ります">新規</button>
-    <button id="wire-btn-template" title="サンプルの書き方を挿入します">テンプレート挿入</button>
-    <button id="wire-btn-save" title="このブラウザ内に保存します">保存(ブラウザ内)</button>
-    <button id="wire-btn-file-list" title="保存済みの配線図一覧を開きます">ファイル一覧</button>
-    <button id="wire-btn-export-png" title="図をPNG画像として書き出します">PNG書き出し</button>
-    <button id="wire-btn-swap" title="部品を2つ選んで(1つ目をクリック→Ctrlキーを押しながら2つ目をクリック)押すと、位置を入れ替えます">位置を入れ替え</button>
-    <button id="wire-btn-help" title="書き方の説明を表示します">使い方</button>
-    <span id="wire-status" class="status"></span>
-  </div>
-</header>
-<div class="split-view">
-  <textarea id="wire-editor" class="code-editor" spellcheck="false" placeholder="右側の図の左下にある「部品追加」「配線追加」ボタンから作れます。まとめて入力したい場合はここに「部品A(種類) | 部品B(種類) | +」の形で書くこともできます。"></textarea>
-  <div id="wire-render" class="render-pane"></div>
-</div>
-
-<div id="wire-file-list-panel" class="help-panel" hidden>
-  <div class="help-panel-header">
-    <span>ファイル一覧(このブラウザ内)</span>
-    <button id="wire-btn-file-list-close" class="help-close">×</button>
-  </div>
-  <ul id="wire-file-list-items" class="file-list-items"></ul>
-</div>
-
-<div id="wire-help-panel" class="help-panel" hidden>
-  <div class="help-panel-header">
-    <span>書き方</span>
-    <button id="wire-btn-help-close" class="help-close">×</button>
-  </div>
-  <p><strong>まずはこれだけ</strong>: これは配線の「つなぎ方(接続図)」を作るための試作段階のタブです。電流や電線の太さの計算にはまだ対応していません。</p>
-  <p><strong>マウス操作(おすすめ)</strong>: 図の左下に出るボタンから操作できます</p>
-  <ul>
-    <li><strong>部品追加</strong>ボタン → 置きたい場所をクリック → 部品名・種類を入力(種類の例: パネル/バッテリー/コントローラー/ヒューズ/スイッチ/負荷)</li>
-    <li><strong>配線追加</strong>ボタン → 起点の部品をクリックしたまま繋ぎたい部品までドラッグ → 種類を入力(「+-」と入力すると+と-の配線を2本まとめて作成)</li>
-    <li>部品や配線を選んで<strong>部品編集/配線編集</strong>ボタンで内容を修正、<strong>選択を削除</strong>ボタンで削除</li>
-    <li>部品は自由にドラッグして配置し直せる</li>
-    <li>部品を1つクリックしたあと、<strong>Ctrlキーを押しながら</strong>もう1つの部品をクリックして2つ選び、「<strong>位置を入れ替え</strong>」ボタンを押すと、2つの部品の位置がそのまま入れ替わる</li>
-  </ul>
-  <p><strong>テキスト入力(まとめて入力したいとき用)</strong></p>
-  <ul>
-    <li><strong>部品A(種類) | 部品B(種類) | 種類</strong> — 1行で1本の配線を表す(「|」で区切る)</li>
-    <li>配線の種類は<strong>+</strong>(プラス配線、赤色)、<strong>-</strong>(マイナス配線、黒色)、<strong>信号</strong>(信号線、青色)が書ける。それ以外の文字を書いた場合は灰色の線になる(自由な名前を付けられる)</li>
-    <li><strong>+-</strong> と書くと、+の配線とーの配線が1行で2本まとめて作られる(プラス・マイナスは2本セットで引くことが多いため)</li>
-    <li>種類の例: パネル(太陽光パネル)、バッテリー、コントローラー(チャージコントローラー)、ヒューズ、スイッチ、負荷(ライト・ポンプなど) — それぞれ分かりやすいアイコンが付く</li>
-    <li>単独で部品だけ書きたい場合は「部品A(種類)」の1行だけでもよい(まだ配線がない部品を先に登録できる)</li>
-    <li>マウス操作で作った図はこのテキスト欄にも自動で反映される(ただしコメント行は消える)</li>
-  </ul>
-</div>
-</section>
-<!-- ==== Stage6: 配線図タブ ここまで ==== -->
-
 <script src="https://cdn.jsdelivr.net/npm/mind-elixir@5.14.0/dist/MindElixir.iife.js"></script>
 <script src="freemind.js"></script>
 <script src="drive.js"></script>
@@ -249,8 +193,6 @@
 <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
 <script src="flowchart.js"></script>
 <script src="relation.js"></script>
-<!-- Stage6で追加。不要になれば上のHTMLブロックとこの1行、wiring.jsを削除するだけで取り除ける -->
-<script src="wiring.js"></script>
 <script src="tabs.js"></script>
 </body>
 </html>
