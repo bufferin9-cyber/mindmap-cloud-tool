@@ -11,10 +11,13 @@ document.querySelectorAll('.app-tab').forEach((btn) => {
     });
     document.getElementById('panel-' + btn.dataset.tab).hidden = false;
 
-    // 関係図はhidden状態で初期化されるとコンテナサイズを0と誤認識するため、
-    // 表示されたタイミングで再フィットさせる(relation.jsが定義する関数)
+    // 関係図・配線図はhidden状態で初期化されるとコンテナサイズを0と誤認識するため、
+    // 表示されたタイミングで再フィットさせる(各jsファイルが定義する関数)
     if (btn.dataset.tab === 'relation' && typeof handleRelationTabShown === 'function') {
       handleRelationTabShown();
+    }
+    if (btn.dataset.tab === 'wiring' && typeof handleWiringTabShown === 'function') {
+      handleWiringTabShown();
     }
   });
 });
