@@ -70,19 +70,19 @@
 <!-- ==== Stage5: 業務フロータブ ここから(不要になったらこの1ブロックとscript/link 1行を削除するだけで良い) ==== -->
 <section id="panel-flowchart" class="tab-panel" hidden>
 <header class="toolbar">
-  <span class="title">業務フロー(試作 / Mermaid記法)</span>
+  <span class="title">業務フロー(試作 / マウス操作)</span>
   <div class="actions">
     <button id="flow-btn-new" title="内容を消して新しいフローを作ります">新規</button>
     <button id="flow-btn-template" title="サンプルの書き方を挿入します">テンプレート挿入</button>
     <button id="flow-btn-save" title="このブラウザ内に保存します">保存(ブラウザ内)</button>
     <button id="flow-btn-file-list" title="保存済みのフロー一覧を開きます">ファイル一覧</button>
-    <button id="flow-btn-export-svg" title="図をSVGファイルとして書き出します">SVG書き出し</button>
+    <button id="flow-btn-export-png" title="図をPNG画像として書き出します">PNG書き出し</button>
     <button id="flow-btn-help" title="書き方の説明を表示します">使い方</button>
     <span id="flow-status" class="status"></span>
   </div>
 </header>
 <div class="split-view">
-  <textarea id="flow-editor" class="code-editor" spellcheck="false" placeholder="ここにMermaidのflowchart記法で業務フローを書きます。「テンプレート挿入」ボタンで書き方の例を入れられます。"></textarea>
+  <textarea id="flow-editor" class="code-editor" spellcheck="false" placeholder="右側の図の左下にある「箱追加」「矢印追加」ボタンから作れます。まとめて入力したい場合はここに「箱A(種類) | 箱B(種類) | ラベル」の形で書くこともできます。"></textarea>
   <div id="flow-render" class="render-pane"></div>
 </div>
 
@@ -96,16 +96,22 @@
 
 <div id="flow-help-panel" class="help-panel" hidden>
   <div class="help-panel-header">
-    <span>書き方(Mermaid flowchart記法)</span>
+    <span>書き方</span>
     <button id="flow-btn-help-close" class="help-close">×</button>
   </div>
+  <p><strong>マウス操作(おすすめ)</strong>: 図の左下に出るボタンから操作できます</p>
   <ul>
-    <li><strong>flowchart TD</strong> — 上から下に流れる図を始める宣言(1行目)</li>
-    <li><strong>A[開始]</strong> — 四角いボックスのノード(IDは何でもよい)</li>
-    <li><strong>B{承認?}</strong> — ひし形(分岐・条件)のノード</li>
-    <li><strong>A --&gt; B</strong> — AからBへ矢印を引く</li>
-    <li><strong>B -- はい --&gt; C</strong> — 矢印に「はい」というラベルを付ける(分岐の条件など)</li>
-    <li>入力すると自動で右側に図が描画されます(記法が間違っている間はエラー表示になります)</li>
+    <li><strong>箱追加</strong>ボタン → 置きたい場所をクリック → 名前・種類を入力(種類の例: 開始/終了/分岐/処理)</li>
+    <li><strong>矢印追加</strong>ボタン → 起点の箱をクリックしたまま繋ぎたい箱までドラッグ → ラベルを入力(「はい」「いいえ」など。空欄でも可)</li>
+    <li>箱や矢印を選んで<strong>箱編集/矢印編集</strong>ボタンで内容を修正、<strong>選択を削除</strong>ボタンで削除</li>
+    <li>箱は自由にドラッグして配置し直せる</li>
+    <li>種類に「開始」「終了」と書くと丸みのある形、「分岐」と書くとひし形、それ以外(または空欄)は四角い処理の箱になる</li>
+  </ul>
+  <p><strong>テキスト入力(まとめて入力したいとき用)</strong></p>
+  <ul>
+    <li><strong>箱A(種類) | 箱B(種類) | ラベル</strong> — 1行で1本の矢印を表す(「|」で区切る)</li>
+    <li>単独で箱だけ書きたい場合は「箱A(種類)」の1行だけでもよい</li>
+    <li>マウス操作で作った図はこのテキスト欄にも自動で反映される(ただしコメント行は消える)</li>
   </ul>
 </div>
 </section>
@@ -188,8 +194,7 @@
 <script src="drive.js"></script>
 <script src="app.js"></script>
 
-<!-- Stage5で追加。不要になれば以下2行+CDN2行+ファイル2本を削除するだけでStage5を丸ごと取り除ける -->
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<!-- Stage5で追加。不要になれば以下1行+CDN1行+ファイル2本を削除するだけでStage5を丸ごと取り除ける -->
 <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
 <script src="flowchart.js"></script>
 <script src="relation.js"></script>
